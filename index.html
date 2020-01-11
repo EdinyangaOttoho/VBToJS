@@ -1,0 +1,160 @@
+<html>
+<head>
+	<title>VBtoJS</title>
+	<link rel="stylesheet" href="default.min.css">
+    <link rel="stylesheet" href="dracula.css">
+	
+	<style type="text/css">
+		.txt-area {
+			padding:15px;
+			border-radius:10px;
+			width:100%;
+			height:calc(50% - 27px);
+			border:1px solid black;
+			outline:none;
+			background-color:#282a36;
+			box-sizing:border-box;
+			overflow-y:auto; 
+		}
+		#txt-code {
+			color:white;
+		}
+	</style>
+</head>
+<body>
+	<textarea class="txt-area" id="txt-code" spellcheck="false" oninput="funcConv()"></textarea>
+	<br/>
+	<br/>	
+	<br/>
+	<br/>
+	<div class ="txt-area">
+		<pre><code class="js" id="txt-res" style="width:calc(100% - 30px)"></code></pre>
+	</div>
+</body>
+<script type="text/javascript">
+	function funcConv() {
+		var tar = document.getElementById("txt-code").value;
+		var txt1 = tar.match(/If.+Then/g);
+		var txt2 = tar.match(/End\sIf/g);
+		var txt3 = tar.match(/([0-9]|[a-z])+\.Text/ig);
+		var txt4 = tar.match(/Dim.+As.+/g);
+		var txt5 = tar.match(/Else/g);
+		var txt6 = tar.match(/Val\(/g);
+		var txt7 = tar.match(/(CStr\(Math\.Round\(|Math\.Round\()/g);
+		var txt8 = tar.match(/\w.+\.Items\.Add/g);
+		var txt10 = tar.match(/MsgBox\(.*\)$/g);		
+		var txt12 = tar.match(/End\sSub/g);
+		tar = tar.replace(/&/g, '+');
+		for (x in txt1) {
+			var s = txt1[x].replace('If', 'if (');
+			s = s.replace('Then', ') {');
+			var s1 = s.match(/<>/g);
+			var s2 = s.match(/Or/g);
+			var s3 = s.match(/And/g);
+			var s = s.replace(/=/g, '==');
+			var s = s.replace(/<==/g, '<=');
+			var s = s.replace(/>==/g, '>=');
+			for (i in s1) {
+				s = s.replace(s1[i], '!=');
+			}
+			for (i in s2) {
+				s = s.replace(s2[i], '||');
+			}
+			for (i in s3) {
+				s = s.replace(s3[i], '&&');
+			}
+			tar = tar.replace(txt1[x], s);
+		}
+
+		for (x in txt2) {
+			var s = txt2[x].replace('End If', '}');
+			tar = tar.replace(txt2[x], s);
+		}
+
+		for (x in txt12) {
+			var s = txt12[x].replace('End Sub', '}');
+			tar = tar.replace(txt12[x], s);
+		}
+
+		for (x in txt4) {
+			var s = txt4[x].replace('Dim', 'var');
+			s = s.replace(' As Integer', '');
+			s = s.replace(' As String', '');
+			s = s.replace(' As Double', '');
+			tar = tar.replace(txt4[x], s);
+		}
+
+		for (x in txt5) {
+			var s = txt5[x].replace('Else', '}<br/>else {');
+			tar = tar.replace(txt5[x], s);
+		}
+		for (x in txt6) {
+			var s = txt6[x].replace(/Val/, 'parseFloat');
+			tar = tar.replace(txt6[x], s);
+		}
+
+		for (x in txt3) {
+			var s1 = txt3[x].replace(".Text", '');
+			var s2 = 'document.getElementById("'+ s1 +'").value';
+			var s = txt3[x].replace(txt3[x], s2);
+			tar = tar.replace(txt3[x], s);
+		}			
+
+		for (x in txt7) {			
+			var s = txt7[x].replace(/CStr\(Math\.Round\(/, 'parseFloat(Math.round(');
+			s = s.replace(/Math\.Round\(/, 'Math.round(');
+			tar = tar.replace(txt7[x], s);
+		}		
+		for (x in txt8) {
+			var spl1 = txt8[x].split(".")[0];			
+			var s1 = 'document.getElementById("'+ spl1 +'").innerHTML += ';
+			tar = tar.replace(txt8[x], s1);
+		}
+		for (x in txt10) {
+			var s1;
+			var s;
+			if (txt10[x].includes(',')) {
+				s1 = txt10[x].split(',')[0].replace('MsgBox(', '');
+				s = 'alert(' + s1 + ');';
+			}
+			else {
+				s1 = txt10[x].replace('MsgBox', 'alert');
+				s = s1 + ';';
+			}
+			tar = tar.replace(txt10[x], s);
+		}
+		var txt14 = tar.match(/\w+\sSub.+\(.*/g);
+		for (x in txt14) {
+			var s1 = txt14[x].replace(/\w+\sSub/, 'function');
+			var s2 = s1.replace('function ', '');
+			var s = s2;
+			s = s.replace(/\(.*/, '()');
+			tar = tar.replace(txt14[x], 'function ' + s + ' {');
+		}
+		tar = tar.replace(/.*Class.*/g, '');
+		tar = tar.replace(/End\sClass/g, '');	
+		var res = document.getElementById("txt-res");
+		tar = tar.replace(/True/ig, 'true');
+		tar = tar.replace(/False/ig, 'false');
+		document.getElementById("txt-res").innerHTML = tar;
+		var txt11 = res.innerHTML.match(/else \{ if/g);
+		for (x in txt11) {
+			res.innerHTML = res.innerHTML.replace(txt11[x], 'else if');
+		}
+		var txt9 = res.innerHTML.match(/document\..+innerHTML.+\)/g);
+		for (x in txt9) {
+			var s = txt9[x] + ' + "&lt;br/&gt;";';
+			res.innerHTML = res.innerHTML.replace(txt9[x], s);
+		}
+		res.innerHTML = res.innerHTML.replace(/MsgBox/g, 'alert');
+		var strip = res.innerHTML.match(/if.*/);
+		for (x in strip) {
+			res.innerHTML = res.innerHTML.replace('( ', '(');
+			res.innerHTML = res.innerHTML.replace(' )', ')');
+		}
+		hljs.highlightBlock(document.getElementById("txt-res"));
+	}
+</script>
+<script src="highlight.min.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+</html>
